@@ -1,0 +1,349 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{fullpage}
+\usepackage{xspace}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{url}
+\usepackage{subfig}
+
+\captionsetup[subfloat]{%
+  labelformat=empty}
+
+\lstset{basicstyle=\small\tt,
+  keywordstyle=\bfseries\color{Orchid},
+  stringstyle=\it\color{Tan},
+  commentstyle=\it\color{LimeGreen},
+  showstringspaces=false}
+
+\newtheorem{question}{Question}
+\newtheorem{exo}{Exercice}
+
+\newcommand{\dx}{\,dx}
+\newcommand{\ito}{,\dotsc,}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Poly}[1]{\mathcal{P}_{#1}}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\pars}[1]{\left(#1\right)}
+\newcommand{\bigpars}[1]{\bigl(#1\bigr)}
+\newcommand{\set}[1]{\left\{#1\right\}}
+
+\title{Compte rendu de TP Mini-stage Scilab/latex}
+\author{Alexandre Petit \and Térence Marchal \and Olivier brun }
+\date{Pour le 22 Novembre 2017}
+
+% ===============
+%\begin{document}
+% ===============
+
+\begin{document}
+\maketitle
+\section{ Sensibilisation à l'arithmétique machine}
+\subsection{ Exercice 1}
+
+\subsubsection{Programme de test}
+\begin{verbatim}
+
+  --> x = 1e30
+  --> y = 1e-8
+  --> z = ((y + x) - x) / y
+  --> w = (y + (x - x)) / y
+\end{verbatim}
+
+\subsubsection{Analyse des résultats}
+On rappelle que dans scilab, les nombres réels sont représentés par un nombre flottant dont la mantisse est codée sur $52$ bits et l'exposant sur $11$ bits. On remarque que $2^{52} \approx 4 \times 10^{15}$, en d'autres termes, cette représentation permet d'atteindre approximativement $16$ chiffres représentatifs (décimaux). \\\\
+Dans le calcul de $z$, l'opération $y + x$ donne, en notation décimale
+$$
+  x + y = 1000000000000000000000000000000,00000001
+$$
+\newline
+Cette valeur présente $39$ chiffres significatifs, ce qui est bien au delà des capacités de repésentation en double précision.\\\\
+De fait, dans $x + y$, $y$ se trouve absorbé (par sa faible pondération), et l'on obtient $x + y = x$ bien que $y$ soit non nul.\\\\
+Dans le calcul de $w$, l'opération $x - x$ produit un zéro, calculer $w$ revient alors à diviser $y$ par lui même, ce qui donne $1$, le calcul est correct.
+
+\subsection{ Exercice 2}
+
+Pour cet exercice, deux implantations des calculs sont proposées. Les résultats sont identiques par chaque méthode. La première est immédiate. La seconde, récursive, permet de suivre l'évolution des calculs pas à pas.\\\\
+Posons
+\begin{itemize}
+  \item $recursive\_root(x, n) = \sqrt{\sqrt{\sqrt {\dots{\sqrt{ x}}}}}$ ($n$ fois)
+  \item $recursive\_power(x, n) = ((\dots((y^2)^2)^2\dots)^2)^2$ ($n$ fois)
+\end{itemize}
+L'étude de limite de la fonction racine récursive donne :
+$$
+\lim\limits_{n \to +\infty} recursive\_root(x, n) = \left\{
+    \begin{array}{ll}
+        0 & \text{si} \quad x \in \{0, 1\} \\
+        1 & \text{si} \quad x \in [0, 1]
+    \end{array}
+\right.
+$$
+L'étude de limite de la fonction puissance récursive donne :
+$$
+\lim\limits_{n \to +\infty} recursive\_power(x, n) = \left\{
+    \begin{array}{ll}
+        0 & \text{si} \quad x < 1 \\
+        1 & \text{si} \quad x = 1 \\
+        \infty & \text{si} \quad x \in > 1
+    \end{array}
+\right.
+$$
+
+
+Au préalable, on pose
+\begin{verbatim}
+  --> x = 1:0.1:4
+\end{verbatim}
+
+\subsubsection{Méthode 1}
+\begin{verbatim}
+  --> y = x ** (0.5 ** 128)
+  --> z = y ** (2.0 ** 128)
+\end{verbatim}
+
+\subsubsection{Méthode 2}
+\begin{verbatim}
+      function y = recursive_root(x, n)
+          if (n == 0) then
+              y = 1
+          elseif (n == 1) then
+              y = sqrt(x)
+          else
+              y = sqrt(recursive_root(x, n - 1))
+          end
+          disp(y)
+      endfunction
+
+      function y = recursive_power(x, n)
+          if (n == 0) then
+              y = x;
+          else
+              z = recursive_power(x, n - 1)
+              y = z .* z;
+          end
+          disp(y)
+      endfunction
+
+  --> y = recursive_root(x, 128)
+  --> z = recursive_power(y, 128)
+\end{verbatim}
+
+\subsubsection{Représentation graphique}
+Tracé des courbes pour $x$ allant de $0$ à $4$ avec un pas de $0.1$.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{recursive_root_x}
+\end{figure}
+
+\subsubsection{Analyse des résultats}
+
+Afin de visualiser les étapes de calcul, lançons la commande $recursive\_root(x, n)$ avec la valeur scalaire $x = 4$ au rang $n = 128$.
+
+\begin{verbatim}
+--> recursive_root(4, 128)
+    2.
+    1.4142136
+    1.1892071
+    1.0905077
+    1.0442738
+    1.0218971
+    1.0108893
+    1.0054299
+    1.0027113
+    1.0013547
+    1.0006771
+    1.0003385
+    1.0001692
+    1.0000846
+    1.0000423
+    1.0000212
+    1.0000106
+    1.0000053
+    1.0000026
+    1.0000013
+    1.0000007
+    1.0000003
+    1.0000002
+    1.0000001
+    1.
+    1.
+    1.
+    1.
+    1.
+    1.
+    ...
+\end{verbatim}
+
+On observe qu'au fil des itérations, la fonction tends vers $1$ jusqu'à venir s'écraser sur cette valeur (ici lors de la 26e itération). Autrement dit, la valeur est tellement proche de $1$ que la machine ne peut plus représenter : Soit $y_i$ la valeur prise lors de la $i^{ième}$ itération, on a :
+
+$$
+1 < y_i < 1 + 10^{-16} \qquad \forall i = 26,\dots,128
+$$
+
+// Impossible à redresser / inverser
+
+
+\subsection{ Exercice 3}
+On rappelle la définition de l'intégrale étudiée dans cet exercice :
+$$
+I_n=\int _0^1x^ne^xdx
+$$
+\subsubsection{}
+
+On donne une formule de récurrence de $I_n$, pour tout $n \geq 0$
+$$
+  \left\{ \begin{aligned}
+    I_0&=e-1\\
+    I_{n+1}&=e-(n+1)I_n\\
+  \end{aligned} \right.
+$$
+
+\subsubsection{}
+Effectuons le développement en série de l'intégrale :
+\begin{align*}
+  I_{20}
+  &=\int_0^1 x^n \sum_{k=0}^ \infty \frac{x^k}{k!}dx\\
+  &=\sum_{k=0}^\infty \int_0^1\frac{x^{k+20}}{k!}dx\\
+  &=\sum_{k=0}^\infty\frac{1}{k!(k+21)}
+\end{align*}\newline
+
+D'où $I_{20}\approx \sum_{k=0}{N}\frac{1}{k!(k+21)}$ pour N suffisamment grand.
+
+\subsection{Exercice 4}
+
+Méthode des rectangles :\newline
+$$
+\int_0^1f(t)dt\approx\frac{1}{n-1}\sum_{k=0}^{n-1}f(k)
+$$
+\newline
+On applique à $f:x\mapsto x^{20}e^x$ avec SCILAB.
+
+\section{ Etude du phénomène de Gibbs}
+
+\subsection{ Exercice 5}
+On étudie une fonction $f: \mathbb{R} \rightarrow \mathbb{R}$ de période $T = 1$. En vue de calculer la série de Fourier de $f$, on calcul les coefficients $a_n(f)$.
+\begin{align*}
+  a_0(f)
+  &=\int_{-\frac{1}{2}}^{\frac{1}{2}}f(t).dt\\
+  &=\int_{-\frac{1}{2}}^{0}f(t).dt + \int_{0}^{\frac{1}{2}}f(t).dt\\
+  &=\int_{-\frac{1}{2}}^{0}(-1).dt + \int_{0}^{\frac{1}{2}}1.dt \\
+  &= 0
+\end{align*}\\\\
+De par la parité de la fonction cosinus, on a :
+\begin{align*}
+  a_n(f)
+  &=2\int_{-\frac{1}{2}}^{\frac{1}{2}}f(t)\cos(2\pi nt).dt\\
+  &=0
+\end{align*}
+Enfin,
+\begin{align*}
+  b_n(f)
+  &=2\int_{-\frac{1}{2}}^{\frac{1}{2}}f(t)\sin(2\pi nt)dt\\
+  &=4\int_0^{\frac{1}{2}}\sin(2\pi nt)dt\\
+  &=2\left[\frac{\cos(2\pi nt)}{\pi n}\right]_{\frac{1}{2}}^0\\
+  &=2\times\frac{1 - \cos(n\pi)}{\pi n}\\
+\end{align*}
+La fonction $f$ n'est pas continue en $0$. Autrement, pour tout $x \in \left]-\frac{1}{2};\frac{1}{2}\right[\setminus\{0\}$, les calculs préliminaires des coeffcients nous donnent
+\begin{align*}
+  f(x)
+  &\overset{def}{=}a_{0}(f) + \sum_{n=1}^{\infty} a_{n}(f)\cos\left(2\pi\frac{n}{T}t\right) + b_{n}(f)\sin\left(2\pi\frac{n}{T}t\right)\\
+  &=\sum_{n=1}^\infty2\times\frac{1 - \cos(n\pi)}{\pi n}\sin(2\pi nx)\\
+  &=\frac{4}{\pi}\sum_{n=0}^\infty\frac{\sin(2\pi nx(2n+1))}{2n+1}
+\end{align*}
+
+
+\newpage
+\subsection{ Exercice 6}
+
+On calcul la somme partielle de la fonction $f$ obtenue dans l'exercice précédent.
+
+\begin{figure}[h]
+    \centering
+    \subfloat[n = 1]{
+      \includegraphics[width=0.5\textwidth]{fourrier_n1}
+    }
+    \subfloat[n = 5]{
+      \includegraphics[width=0.5\textwidth]{fourrier_n5}
+    }
+    \hspace{0mm}
+    \subfloat[n = 50]{
+      \includegraphics[width=0.5\textwidth]{fourrier_n50}
+    }
+    \subfloat[n = 5000]{
+      \includegraphics[width=0.5\textwidth]{fourrier_n5000}
+    }
+\end{figure}
+
+On remarque que la transformée de fourier de $f$ approche fortement $f$ lorsque $n$ est suffisament grand.
+
+\section{ Théorème de Gerschgörin}
+
+\subsection{ Exercice 7}
+\subsubsection{Démonstration du théorème}
+%\begin{equation}
+Soit $A = (a_{ij})_{1 \leqslant i, j \leqslant N} \in \mathcal{M}_N(\mathbb{C}),
+\lambda \in Sp(A)$  et $ v = (v_i)_{1 \leqslant i \leqslant N}^\intercal$ un vecteur propre de A
+ associé à $\lambda$.
+%\end{equation}
+ On a, pour tout $k$:
+ \begin{equation}
+     \lambda v_k = \sum\limits_{i=1}^N a_{ik}v_i
+ \end{equation}
+ Soit:
+ \begin{equation}
+     (\lambda - a_{kk})v_k = \sum\limits_{i=1, i \neq k}^N a_{ik}v_i
+ \end{equation}
+ D'où (inégalité triangulaire):
+ \begin{equation}
+    |\lambda - a_{kk}||v_k| \leqslant \sum\limits_{i=1, i \neq k}^N |a_{ik}||v_i|
+ \end{equation}
+ Prenons alors k tel que $v_k = \max_{i} |v_i| \neq 0$ car $v$ est un vecteur propre.
+ Il vient alors, puisque $v_i \leqslant v_k$ pour tout i:
+ \begin{equation}
+     |\lambda - a_{kk}||v_k| \leqslant |v_k|\sum\limits_{i=1, i \neq k}^N |a_{ik}|
+ \end{equation}
+D'où le résultat.
+
+\subsubsection{Visualisation des disques de Gerschgörin}
+
+Considérons la matrice suivante
+\begin{equation*}
+    A = \left( \begin{array}{cccc}
+      1+i & i & 2 \\
+      3 & 2+i & 1\\
+      1 & i   & 6
+    \end{array} \right).
+\end{equation*}
+et traçons les disques de Gerschgörin qui lui sont associés.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{gershgorin}
+\end{figure}
+
+\subsubsection{Vérification de l'appartenance des valeurs propres au disques}
+On utilise la commande $spec(A)$ pour connaitre ses valeurs propres.
+\newline
+On constate graphiquement qu'elles sont bien dans les disques
+\newline\newline
+4. Soit $A$ à diagonale strictement dominante
+\newline
+En effet, posons $E_k = \{z \in \mathbb{C}, |z - a_{kk}| < |a_{kk}| \}$
+ ,il est clair que $0_{\mathbb{C}}\notin\bigcup\limits_{k=1}^N E_k$
+\newline
+On a également $D_k\subseteq E_k$ pour tout k
+\newline
+Par suite: $Sp(A)\subseteq\bigcup\limits_{k=1}^N D_k\subseteq\bigcup\limits_{k=1}^N E_k$
+donc $0_{\mathbb{C}}\notin Sp(A)$
+\newline
+Donc $A$ est inversible.
+\end{document}
